@@ -1,0 +1,21 @@
+form.form_autorize {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 30%;
+}
+
+input.user_name {
+    width: 50%;
+    margin-top: 10px;
+}
+
+input.chat_number {
+    width: 50%;
+    margin-top: 10px;
+}
+
+button.go_to_chat {
+    width: 30%;
+    margin-top: 50px;
+}

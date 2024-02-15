@@ -1,0 +1,24 @@
+.window_chat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.inner_text {
+    width: 250px;
+    height: 300px;
+    background-color: cornsilk;
+}
+
+.autorize {
+    width: 200px;
+    height: 200px;
+    background-color: beige;
+    margin-left: 10px;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+}

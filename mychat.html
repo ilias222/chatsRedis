@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="./style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+    <div class="window_chat">
+
+        <div class="inner_text"></div>
+
+        <form action="" class="input_text">
+
+            <input type="text" class="my_text">
+            <button class="press_text">Ok</button>
+
+        </form>
+
+    </div>
+
+    <div class="autorize">
+        <p class="user_autorize">
+            Авторизовались
+        </p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+      const socket = io();
+
+      const form = document.querySelector('.press_text');
+      const input = document.querySelector('.my_text');
+      const innerText = document.querySelector('.inner_text');
+
+      const dumpDate = () => {
+        const dat = new Date();
+        return `${dat.getHours()}:${dat.getMinutes()}:${dat.getSeconds()} ${dat.getDate()}-${dat.getMonth()}-${dat.getFullYear()}`;
+        }
+
+      // При авторизации
+      socket.on('user autorize', (en) => {
+        console.log(en)
+      });
+      // При отключении
+      socket.on('user disconected', (en) => {
+        document.querySelector('.en').remove();
+      });
+      // При нажатии на отправку сообщения
+      form.addEventListener('click', (e) => {
+        e.preventDefault();
+
+        // Отправка сообщения на сервак
+        if(input.value){
+            socket.emit('chat message', input.value);
+            input.value = '';
+        }
+      });
+
+      // Трансляция с сервака сообщений в чат
+      socket.on('new message', (msg) => {
+            const item = document.createElement('p');
+            item.textContent = dumpDate() + '\n' + localStorage.getItem('userName') + ': ' + '\n' + msg + '\n';;
+            innerText.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+            })
+
+    </script>
+
+</body>
+</html>

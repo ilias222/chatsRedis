@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./styleHome.css">
+    <title>Начальная</title>
+</head>
+<body>
+    <div class="box_autorize">
+        <form action="" class="form_autorize">
+            <input type="text" class="user_name" placeholder="Имя">
+            <input type="text" class="chat_number" placeholder="Номер чата">
+            <button class="go_to_chat">Войти</button>
+        </form>
+    </div>
+
+    <script>
+        document.querySelector('.form_autorize').addEventListener('submit', (e) =>{
+            e.preventDefault();
+
+            const name_user = document.querySelector('.user_name').value;
+            const number_chat = document.querySelector('.chat_number').value;
+
+            if(name_user && number_chat){
+
+                const jsons = {
+                    'username': name_user,
+                    'numberchat': number_chat
+                };
+
+
+                fetch(`http://192.168.56.1:8000/chat:${number_chat}`, {
+                    method: 'POST',
+                    body: JSON.stringify(jsons)
+                }).then(item => {
+                    if(item.status == 200){
+                        window.location.href = `http://192.168.56.1:8000/chat:${number_chat}`
+                    }
+                }).catch((e) => console.error(e));
+
+            } else {
+                alert('Не заполнены обязательные поля')
+            }
+        })
+    </script>
+</body>
+</html>

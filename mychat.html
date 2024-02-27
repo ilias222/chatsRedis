@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="http://192.168.56.1:8000/files:style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
 <body>
+
+  <div class="box">
     
     <div class="window_chat">
 
@@ -14,7 +16,7 @@
 
         <form action="" class="input_text">
 
-            <input type="text" class="my_text">
+            <textarea class="my_text" rows="7" cols="50"></textarea>
             <button class="press_text">Ok</button>
 
         </form>
@@ -22,28 +24,80 @@
     </div>
 
     <div class="autorize">
-        <p class="user_autorize">
-            Авторизовались
-        </p>
+        
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
+  </div>
 
+    <script src="/socket.io/socket.io.js"></script>
+    
     <script>
+
       const socket = io();
+      let rotationMessage = false;
 
       const form = document.querySelector('.press_text');
       const input = document.querySelector('.my_text');
       const innerText = document.querySelector('.inner_text');
 
-      const dumpDate = () => {
-        const dat = new Date();
+      const dumpDate = (unix=false) => {
+        let dat;
+        unix == false ? dat = new Date() : dat = new Date(unix);
         return `${dat.getHours()}:${dat.getMinutes()}:${dat.getSeconds()} ${dat.getDate()}-${dat.getMonth()}-${dat.getFullYear()}`;
         }
 
+      const positionMessage = (userName) => {
+          const myitem = document.createElement('div');
+          myitem.className = setTimeout(dumpDate().slice(6,8), 1000) + ' message';
+
+            if(!rotationMessage){
+              myitem.style.backgroundColor = 'beige';
+              myitem.style.textAlign = 'start';
+              rotationMessage = true;
+            } else{
+              myitem.style.backgroundColor = 'floralwhite';
+              myitem.style.textAlign = 'end';
+              rotationMessage = false;
+            }
+        
+          return myitem;
+      }
+
       // При авторизации
+      socket.emit('who user', {"names" : localStorage.getItem('username'),
+                              "room" : localStorage.getItem('roomnumber')});
+
       socket.on('user autorize', (en) => {
-        console.log(en)
+        document.querySelector('.autorize').innerHTML += en;
+      });
+
+      socket.on('prev_message', (arrMessage) =>{
+
+        let item = positionMessage();
+
+        arrMessage.forEach((el, index) => {
+
+          if(index%3 != 0){
+
+            if(typeof el == 'string'){
+              item.innerHTML += `<p class="${index}_message useMessage">${el}</p>`;
+            } else {
+              item.innerHTML += `<p class="${index}_date messDate">${dumpDate(el)}</p>`;
+            }
+          } else if(index == 0){
+          item.innerHTML += `<p class="${index}_names useName">${el}</p>`;
+
+          }else {
+            innerText.append(item);
+            item = positionMessage();
+            item.innerHTML += `<p class="${index}_names useName">${el}</p>`; 
+          }
+          innerText.append(item);
+        });
+
+        innerText.scrollTo({
+              top: innerText.scrollHeight,
+            });
       });
       // При отключении
       socket.on('user disconected', (en) => {
@@ -55,19 +109,29 @@
 
         // Отправка сообщения на сервак
         if(input.value){
-            socket.emit('chat message', input.value);
+            socket.emit('chat message', {"msg" : input.value, 
+                                        "names" : localStorage.getItem('username'),
+                                        "room" : localStorage.getItem('roomnumber')
+                                      });
             input.value = '';
         }
+
+        
       });
 
       // Трансляция с сервака сообщений в чат
       socket.on('new message', (msg) => {
-            const item = document.createElement('p');
-            item.textContent = dumpDate() + '\n' + localStorage.getItem('userName') + ': ' + '\n' + msg + '\n';;
+            const item = positionMessage();
+            item.innerHTML = `<p class="useName">${msg.names} 
+                              :</p> <p class="messDate">${dumpDate()}</p> 
+                              <p class ="useMessage">${msg.msg}</p>`;
+                              
             innerText.appendChild(item);
-            window.scrollTo(0, document.body.scrollHeight);
-            })
-
+            innerText.scrollTo({
+            top: innerText.scrollHeight,
+            behavior: "smooth",
+            });
+        })
     </script>
 
 </body>

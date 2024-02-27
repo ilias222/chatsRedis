@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./styleHome.css">
+    <link rel="stylesheet" href="http://192.168.56.1:8000/files:styleHome.css">
     <title>Начальная</title>
 </head>
 <body>
@@ -29,12 +29,16 @@
                     'numberchat': number_chat
                 };
 
+                console.log(jsons)
+
 
                 fetch(`http://192.168.56.1:8000/chat:${number_chat}`, {
                     method: 'POST',
                     body: JSON.stringify(jsons)
                 }).then(item => {
                     if(item.status == 200){
+                        localStorage.setItem('username', jsons.username);
+                        localStorage.setItem('roomnumber', jsons.numberchat);
                         window.location.href = `http://192.168.56.1:8000/chat:${number_chat}`
                     }
                 }).catch((e) => console.error(e));

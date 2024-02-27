@@ -2,56 +2,87 @@ const http = require("http");
 const fs = require("fs");
 const { Server } = require("socket.io");
 
-const { createClient } = require('redis');
+let userRooms = [];
+let messageAll = {};
+let numberchat;
+let nameuser;
+let legal = false;
 
-const client = createClient();
+// Проверяем в массиве, есть ли записанный юзер или комната
+const chunkingArr = (room=null, user=null) => {
+    let acsses = false;
+    userRooms.forEach((elem) => {
+       if( elem.rootnumber == room || elem.nameuser == user){ 
+        acsses = true;
+       }
+    });
 
-client.on('error', err => console.log('Redis Client Error', err));
+    return acsses;
+}
 
-client.connect();
+// Добавляем комнату, юзера и массив из даты и сообщения
+const pushMessage = (user, room, msg) => {
+    if(messageAll[room]){
+        messageAll[room].push(user);
+        messageAll[room].push(new Date().getTime());
+        messageAll[room].push(msg); 
+    } else{
+        messageAll[room] = [];
+        messageAll[room].push(user);
+        messageAll[room].push(new Date().getTime());
+        messageAll[room].push(msg);
+    }
+    return true;
+}
 
-client.set('key', 'value');
+// Проверяем объект полных сообщений, выдаем список юзеров и их сообщений в определенной комнате
+const pullMessage = (rooms) => {
+    if(messageAll[rooms]){
+        return messageAll[rooms];
+    } else {
+        return false;
+    }
+}
 
-client.hSet('user-session:123', {
-    name: 'John',
-    surname: 'Smith',
-    company: 'Redis',
-    age: 29
-})
-
-let userSession = client.hGetAll('user-session:123');
-console.log(JSON.stringify(userSession, null, 2));
-
-let user;
-let room
 
 const server = http.createServer((reqiuest, respons) => { 
     const url = reqiuest.url;
 
     // Типо роутер - Домашная, страница чата, Возврат файла
-    switch (0) {
-        case url.indexOf('/home'):
-            respons.end(fs.readFileSync('./index.html'));
-            break;
-        case url.indexOf('/chat'):
-            respons.writeHead(200, {'content-type': 'text/html'});
-
-            // Крутим тело отправки авторизационных данных
+    switch (reqiuest.method) {
+        case 'POST':
             reqiuest.on('data', async (chunk) =>  {
                 let json = await chunk.toString('utf-8');
-                const roomnumber = json.slice(json.indexOf('numberchat') + 13).replace('"}', '');
-                room = roomnumber;
-                const nameuser = json.slice(json.indexOf('username') + 11, json.indexOf(',')).replace('"', '');
-                user = nameuser;
-
-                console.log('room', room, 'user', user)
+                let jsons = JSON.parse(json);
+                numberchat = jsons.numberchat;
+                nameuser = jsons.username;
+                userRooms.push({"nameuser": nameuser, "rootnumber" : numberchat});
             });
-
-
+            legal = true;
             fs.createReadStream('mychat.html').pipe(respons);
             break;
+    
+            case 'GET':
+                if(reqiuest.url == '/home'){
+                    fs.createReadStream('index.html').pipe(respons);
+                } else if (reqiuest.url.indexOf('es:') > 0 || 
+                            reqiuest.url.indexOf('con.') > 0){
+                                
+                    fs.createReadStream("./" + reqiuest.url.slice(7)).pipe(respons);
+                    
+                } else if (reqiuest.url.indexOf('at:') > 0 && legal){
+                    fs.createReadStream('mychat.html').pipe(respons);
+                    legal = false;
+                
+                }
+                else if(chunkingArr(reqiuest.url.slice(6))){
+                     fs.createReadStream('mychat.html').pipe(respons);
+                }
+                else {
+                    fs.createReadStream('err.html').pipe(respons);
+                };
+                break;
         default:
-            respons.end(fs.readFileSync('.' + reqiuest.url));
             break;
     }
 
@@ -61,24 +92,35 @@ const io = new Server(server)
 
 // Конект пользователя
 io.on('connection', (socket) => {
-    console.log('a user connected', socket.id);
     // Подписываемся на номер комнаты
-    socket.join(room)
+    socket.join(numberchat);
+
+    socket.on('who user', (local) => {
+        nameuser = local.names;
+        numberchat = local.room;
+
+        socket.emit('prev_message', pullMessage(local.room));
+
+    });
 
     // Отправка статуса при авторизации
-    io.to(room).emit('user autorize', user);
+    io.to(numberchat).emit('user autorize', nameuser);
+    
 
     // прием сообщения от ui клиента
     socket.on('chat message', (msg) => {
         // Отправка сообщения всем клиентам ui 
-        io.to(room).emit('new message', msg);
+        if(chunkingArr(msg.room) && chunkingArr(null, msg.names)) {
+            pushMessage(msg.names, msg.room, msg.msg);
+            // console.log(messageAll);
+            io.emit('new message', msg);
+        }
     });
 
     // При отключении отправка статуса
     socket.on('disconnect', () => {
         console.log('user disconnected');
         socket.emit('disconected', socket.id);
-        console.log(socket.handshake.address)
       });
 })
 

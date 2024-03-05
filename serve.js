@@ -7,12 +7,13 @@ let messageAll = {};
 let numberchat;
 let nameuser;
 let legal = false;
+let list = [];
 
 // Проверяем в массиве, есть ли записанный юзер или комната
 const chunkingArr = (room=null, user=null) => {
     let acsses = false;
     userRooms.forEach((elem) => {
-       if( elem.rootnumber == room || elem.nameuser == user){ 
+       if(elem.rootnumber == room || elem.nameuser == user){ 
         acsses = true;
        }
     });
@@ -37,12 +38,31 @@ const pushMessage = (user, room, msg) => {
 
 // Проверяем объект полных сообщений, выдаем список юзеров и их сообщений в определенной комнате
 const pullMessage = (rooms) => {
+
     if(messageAll[rooms]){
         return messageAll[rooms];
     } else {
         return false;
     }
 }
+
+const pullUser = (nameuser, id) => {
+
+    console.log('length arr list', list.length)
+
+    if(list.length > 0 && list.find((elem) => elem.nameuser == nameuser)){
+
+        console.log('searsh user in list');
+
+    } else{
+        console.log('push user')
+        list.push({"nameuser" : nameuser, "id" : id});
+    }
+
+    console.log(list)
+
+    return list;
+};
 
 
 const server = http.createServer((reqiuest, respons) => { 
@@ -56,6 +76,7 @@ const server = http.createServer((reqiuest, respons) => {
                 let jsons = JSON.parse(json);
                 numberchat = jsons.numberchat;
                 nameuser = jsons.username;
+
                 userRooms.push({"nameuser": nameuser, "rootnumber" : numberchat});
             });
             legal = true;
@@ -92,36 +113,51 @@ const io = new Server(server)
 
 // Конект пользователя
 io.on('connection', (socket) => {
-    // Подписываемся на номер комнаты
-    socket.join(numberchat);
 
-    socket.on('who user', (local) => {
-        nameuser = local.names;
-        numberchat = local.room;
+    socket.on('who user', async (local) => {
+        nameuser = await local.names;
+        numberchat = await local.room;
 
-        socket.emit('prev_message', pullMessage(local.room));
+        socket.join(numberchat);
+        [id , room] = socket.rooms;
 
+        // Перебираем масив Юзер - номер комнаты
+        io.to(room).emit('user autorize', pullUser(nameuser, socket.id));
+
+        io.to(room).emit('prev_message', pullMessage(room));
     });
 
-    // Отправка статуса при авторизации
-    io.to(numberchat).emit('user autorize', nameuser);
-    
+
+
 
     // прием сообщения от ui клиента
     socket.on('chat message', (msg) => {
-        // Отправка сообщения всем клиентам ui 
-        if(chunkingArr(msg.room) && chunkingArr(null, msg.names)) {
-            pushMessage(msg.names, msg.room, msg.msg);
-            // console.log(messageAll);
-            io.emit('new message', msg);
+
+        // Отправка сообщения всем клиентам комнаты
+        if(chunkingArr(msg.rooms) && chunkingArr(null, msg.names)) {
+
+            nameuser = msg.names;
+            numberchat = msg.room;
+            
+            socket.join(numberchat);
+            [id , room] = socket.rooms;
+
+            pushMessage(msg.names, msg.rooms, msg.msg);
+
+            io.to(room).emit('new message', msg);
         }
     });
 
     // При отключении отправка статуса
-    socket.on('disconnect', () => {
-        console.log('user disconnected');
-        socket.emit('disconected', socket.id);
+
+    socket.on('disconnect', (e) => {
+
+        socket.disconnect(true);
+
+        io.emit('discon', e); 
+
+        io.emit('delete user', socket.id);
       });
-})
+});
 
 server.listen(8000, '192.168.56.1');

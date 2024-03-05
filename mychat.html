@@ -40,17 +40,20 @@
       const input = document.querySelector('.my_text');
       const innerText = document.querySelector('.inner_text');
 
+
+      // Функция по возврату даты
       const dumpDate = (unix=false) => {
         let dat;
         unix == false ? dat = new Date() : dat = new Date(unix);
         return `${dat.getHours()}:${dat.getMinutes()}:${dat.getSeconds()} ${dat.getDate()}-${dat.getMonth()}-${dat.getFullYear()}`;
         }
 
+      // Функция по растановки сообщений (стили)
       const positionMessage = (userName) => {
           const myitem = document.createElement('div');
           myitem.className = setTimeout(dumpDate().slice(6,8), 1000) + ' message';
 
-            if(!rotationMessage){
+            if(userName == localStorage.getItem('username')){
               myitem.style.backgroundColor = 'beige';
               myitem.style.textAlign = 'start';
               rotationMessage = true;
@@ -62,18 +65,26 @@
         
           return myitem;
       }
+      
 
       // При авторизации
       socket.emit('who user', {"names" : localStorage.getItem('username'),
-                              "room" : localStorage.getItem('roomnumber')});
+                              "room" : localStorage.getItem('roomnumber')}
+                              );
+                              console.log(localStorage.getItem('roomnumber'))
 
       socket.on('user autorize', (en) => {
-        document.querySelector('.autorize').innerHTML += en;
+        document.querySelector('.autorize').innerHTML = ``;
+        en.forEach((el) => {
+          console.log(el)
+          document.querySelector('.autorize').innerHTML += `<div class="${el.id}">${el.nameuser}</div>`;
+        })
+        
       });
 
       socket.on('prev_message', (arrMessage) =>{
 
-        let item = positionMessage();
+        let item = positionMessage(localStorage.getItem('username'));
 
         arrMessage.forEach((el, index) => {
 
@@ -85,11 +96,11 @@
               item.innerHTML += `<p class="${index}_date messDate">${dumpDate(el)}</p>`;
             }
           } else if(index == 0){
-          item.innerHTML += `<p class="${index}_names useName">${el}</p>`;
+            item.innerHTML += `<p class="${index}_names useName">${el}</p>`;
 
           }else {
             innerText.append(item);
-            item = positionMessage();
+            item = positionMessage(localStorage.getItem('username'));
             item.innerHTML += `<p class="${index}_names useName">${el}</p>`; 
           }
           innerText.append(item);
@@ -99,10 +110,7 @@
               top: innerText.scrollHeight,
             });
       });
-      // При отключении
-      socket.on('user disconected', (en) => {
-        document.querySelector('.en').remove();
-      });
+
       // При нажатии на отправку сообщения
       form.addEventListener('click', (e) => {
         e.preventDefault();
@@ -111,7 +119,7 @@
         if(input.value){
             socket.emit('chat message', {"msg" : input.value, 
                                         "names" : localStorage.getItem('username'),
-                                        "room" : localStorage.getItem('roomnumber')
+                                        "rooms" : localStorage.getItem('roomnumber')
                                       });
             input.value = '';
         }
@@ -121,7 +129,7 @@
 
       // Трансляция с сервака сообщений в чат
       socket.on('new message', (msg) => {
-            const item = positionMessage();
+            const item = positionMessage(msg.names);
             item.innerHTML = `<p class="useName">${msg.names} 
                               :</p> <p class="messDate">${dumpDate()}</p> 
                               <p class ="useMessage">${msg.msg}</p>`;
@@ -131,7 +139,16 @@
             top: innerText.scrollHeight,
             behavior: "smooth",
             });
-        })
+        });
+
+      // При отключении
+      socket.on('discon', (en) => {
+        alert(en)
+        socket.on('delete user', (id) => {
+          document.querySelector(`.${id}`).remove();
+        });
+
+      });
     </script>
 
 </body>

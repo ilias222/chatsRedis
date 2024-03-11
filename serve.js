@@ -159,9 +159,9 @@ io.on('connection', (socket) => {
 
         socket.disconnect(true);
 
-        io.emit('discon', e); 
+        io.to(numberchat).emit('discon', {"type" : e, "id" : socket.id}); 
 
-        io.emit('delete user', socket.id);
+        io.to(numberchat).emit('delete user', socket.id);
 
         deleteUserRooms(socket.id)
       });

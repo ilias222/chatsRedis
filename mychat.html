@@ -144,7 +144,7 @@
 
       // При отключении
       socket.on('discon', (en) => {
-        alert(en)
+        alert(`User DISCONECT ---> ${en.id} : ${en.type}`)
         socket.on('delete user', (id) => {
           console.log(id)
           document.querySelector(`.${id}`).remove();

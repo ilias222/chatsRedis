@@ -57,3 +57,12 @@
     height: 50%;
     border-radius: 20px;
 }
+
+.online_user {
+    width: 15px;
+    height: 15px;
+    display: inline-block;
+    background-color: chartreuse;
+    border-radius: 10px;
+    border: 1px solid lightblue;
+}

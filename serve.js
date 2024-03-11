@@ -7,7 +7,6 @@ let messageAll = {};
 let numberchat;
 let nameuser;
 let legal = false;
-let list = [];
 
 // Проверяем в массиве, есть ли записанный юзер или комната
 const chunkingArr = (room=null, user=null) => {
@@ -44,24 +43,33 @@ const pullMessage = (rooms) => {
     } else {
         return false;
     }
-}
+};
 
-const pullUser = (nameuser, id) => {
+const deleteUserRooms = (id) => {
+    userRooms.find((elem, index) => {
+        if (elem.id == id){
+            delete userRooms[index];
+        };
+    });
 
-    console.log('length arr list', list.length)
+    userRooms.sort();
+    userRooms.pop();
+};
 
-    if(list.length > 0 && list.find((elem) => elem.nameuser == nameuser)){
+const pullUser = (nameuser, room) => {
 
-        console.log('searsh user in list');
+    let searchUserRoom;
 
-    } else{
-        console.log('push user')
-        list.push({"nameuser" : nameuser, "id" : id});
-    }
+        searchUserRoom = userRooms.filter((elem) =>{
+            if(elem.rootnumber == room){
+                return elem;
+            } else if (elem.nameuser == nameuser){
+                elem.rootnumber = room;
+                return elem;
+            }
+        });
 
-    console.log(list)
-
-    return list;
+    return searchUserRoom;
 };
 
 
@@ -76,8 +84,6 @@ const server = http.createServer((reqiuest, respons) => {
                 let jsons = JSON.parse(json);
                 numberchat = jsons.numberchat;
                 nameuser = jsons.username;
-
-                userRooms.push({"nameuser": nameuser, "rootnumber" : numberchat});
             });
             legal = true;
             fs.createReadStream('mychat.html').pipe(respons);
@@ -118,11 +124,13 @@ io.on('connection', (socket) => {
         nameuser = await local.names;
         numberchat = await local.room;
 
+        userRooms.push({"nameuser": nameuser, "rootnumber" : numberchat, "id" : socket.id})
+
         socket.join(numberchat);
         [id , room] = socket.rooms;
 
         // Перебираем масив Юзер - номер комнаты
-        io.to(room).emit('user autorize', pullUser(nameuser, socket.id));
+        io.to(room).emit('user autorize', pullUser(nameuser, numberchat, socket.id));
 
         io.to(room).emit('prev_message', pullMessage(room));
     });
@@ -135,9 +143,6 @@ io.on('connection', (socket) => {
 
         // Отправка сообщения всем клиентам комнаты
         if(chunkingArr(msg.rooms) && chunkingArr(null, msg.names)) {
-
-            nameuser = msg.names;
-            numberchat = msg.room;
             
             socket.join(numberchat);
             [id , room] = socket.rooms;
@@ -157,6 +162,8 @@ io.on('connection', (socket) => {
         io.emit('discon', e); 
 
         io.emit('delete user', socket.id);
+
+        deleteUserRooms(socket.id)
       });
 });
 

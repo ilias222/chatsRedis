@@ -19,3 +19,11 @@ button.go_to_chat {
     width: 30%;
     margin-top: 50px;
 }
+
+input {
+    border-bottom: 4px solid lightgreen;
+    border-top: none;
+    border-right: none;
+    border-left: none;
+    outline: none;
+}

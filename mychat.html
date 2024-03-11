@@ -77,7 +77,8 @@
         document.querySelector('.autorize').innerHTML = ``;
         en.forEach((el) => {
           console.log(el)
-          document.querySelector('.autorize').innerHTML += `<div class="${el.id}">${el.nameuser}</div>`;
+          document.querySelector('.autorize').innerHTML += `<div class="${el.id}">${el.nameuser} 
+                                                            <span class="online_user"></span></div>`;
         })
         
       });
@@ -145,6 +146,7 @@
       socket.on('discon', (en) => {
         alert(en)
         socket.on('delete user', (id) => {
+          console.log(id)
           document.querySelector(`.${id}`).remove();
         });
 
